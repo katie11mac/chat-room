@@ -1,6 +1,9 @@
 CFLAGS=-Wall -pedantic -g 
 
-my-client: my-client.c
+.PHONY: all
+all: chat-client chat-server
+
+chat-client: chat-client.c
 	gcc $(CFLAGS) -o $@ $^
 
 chat-server: chat-server.c
@@ -8,4 +11,4 @@ chat-server: chat-server.c
 
 .PHONY: clean
 clean:
-	rm -f my-client my-server
+	rm -f chat-client chat-server

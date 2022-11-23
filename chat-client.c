@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     int rc;
     time_t timing;
     char date[14];
-    struct tm *tmp;
+    struct tm *curr_time;
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -69,12 +69,12 @@ int main(int argc, char *argv[])
         if((timing = time(NULL)) == (time_t)-1){
             perror("time");
         }
-        tmp = localtime(&timing);
-        strftime(date, BUF_SIZE, "%H:%M:%S", tmp);
+        curr_time = localtime(&timing);
+        strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
         
         printf("%s: ",date);
 
-        printf("%s",buf); //WHY IS IT PRINTING THE NAME AGAIN?
+        printf("%s",buf); //WHY IS IT PRINTING THE NAME AGAIN? it doesn't always print the name
     }
 
     if((close(conn_fd)) == -1){

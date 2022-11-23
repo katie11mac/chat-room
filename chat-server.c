@@ -75,6 +75,11 @@ int main(int argc, char *argv[])
         printf("new connection from %s:%d\n", remote_ip, remote_port);
 
         /* receive and echo data until the other end closes the connection */
+        // WE NEED TO CHANGE THIS SO THAT WE CAN HANDLE MULTIPLE CONNECTIONS AT ONCE
+        // CLASS NOTES SUGGEST: 
+        //      fork off a new process to deal with each incoming connection OR
+        //      spin off a thread to deal with each incoming connection
+
         while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
     
             if(fflush(stdout) != 0){
@@ -83,9 +88,11 @@ int main(int argc, char *argv[])
 
             strncpy(is_nick, buf, 5);
 
+            // i don't fully understand why we check the nick in the server and not the client...
             if(strcmp(is_nick, "/nick") == 0){
                 
                 new_nick = strtok(buf + 6, "\n");
+                // how do we broadcast this message to all clients?
                 snprintf(message, BUF_SIZE, "User %s (%s:%d) is now known as %s.\n", hints.ai_canonname, remote_ip, remote_port, new_nick);
         
                 if((puts(message) < 0)){ //he used puts so i used puts- but i belive printf would also work?
@@ -97,7 +104,9 @@ int main(int argc, char *argv[])
                     perror("send");
                 }
 
-                hints.ai_canonname = new_nick; //this is happening before send and snprintf - how do we fix this?
+                hints.ai_canonname = new_nick; 
+                //the line above is happening before send and snprintf - 
+                //how do we fix this? the only thing i can think of is make it a critical section, but that's used with multiple threads and i don't think that's applicable here
 
             }
             else{

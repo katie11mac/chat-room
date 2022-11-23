@@ -1,5 +1,8 @@
 Authors: Lindsey Schweitzer and Katie Macalintal
 
-Known Bugs: N/A
+Known Bugs: 
+- Cannot handle multiple clients 
+- Does not properly print the username of client
+- When a singular client sends more than one message, there is a significant lag in printing the message
 
 Resources: 

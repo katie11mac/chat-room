@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <string.h>
+#include <time.h>
 
 #define BUF_SIZE 4096
 
@@ -21,6 +22,9 @@ int main(int argc, char *argv[])
     char buf[BUF_SIZE];
     int n;
     int rc;
+    time_t timing;
+    char date[14];
+    struct tm *tmp;
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -52,6 +56,7 @@ int main(int argc, char *argv[])
     /* infinite loop of reading from terminal, sending the data, and printing
      * what we get back */
     while((n = read(0, buf, BUF_SIZE)) > 0) {
+
         if((send(conn_fd, buf, n, 0)) == -1){
             perror("send");
         }
@@ -59,11 +64,17 @@ int main(int argc, char *argv[])
         if((n = recv(conn_fd, buf, BUF_SIZE, 0)) == -1){
             perror("recv");
         }
-        
-        printf("received: ");
-        if((puts(buf) < 0)){
-            perror("puts");
+
+        //Print out time
+        if((timing = time(NULL)) == (time_t)-1){
+            perror("time");
         }
+        tmp = localtime(&timing);
+        strftime(date, BUF_SIZE, "%H:%M:%S", tmp);
+        
+        printf("%s: ",date);
+
+        printf("%s",buf); //WHY IS IT PRINTING THE NAME AGAIN?
     }
 
     if((close(conn_fd)) == -1){

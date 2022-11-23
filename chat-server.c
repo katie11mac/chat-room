@@ -14,7 +14,7 @@
 #include <string.h>
 
 #define BACKLOG 10
-#define BUF_SIZE 4096
+#define BUF_SIZE 4096 // can we assume a max message size?
 
 int main(int argc, char *argv[])
 {
@@ -31,6 +31,9 @@ int main(int argc, char *argv[])
     //buffer to compare to /nick
     char is_nick[6];
     char *new_nick;
+    char message[BUF_SIZE];
+
+    hints.ai_canonname = "Unknown";
 
     listen_port = argv[1];
 
@@ -80,18 +83,33 @@ int main(int argc, char *argv[])
 
             strncpy(is_nick, buf, 5);
 
-            printf("is_nick = %s\n", is_nick);
-
             if(strcmp(is_nick, "/nick") == 0){
-                new_nick = buf + 5;
-                //WHY IS A k. PRINTING?
-                printf("User unknown (%s:%d) is now known as %s.\n", remote_ip, remote_port, new_nick);
+                
+                new_nick = strtok(buf + 6, "\n");
+                snprintf(message, BUF_SIZE, "User %s (%s:%d) is now known as %s.\n", hints.ai_canonname, remote_ip, remote_port, new_nick);
+        
+                if((puts(message) < 0)){ //he used puts so i used puts- but i belive printf would also work?
+                    perror("puts");
+                }
+
+                /* send it back */
+                if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
+                    perror("send");
+                }
+
+                hints.ai_canonname = new_nick; //this is happening before send and snprintf - how do we fix this?
+
             }
-            
-            /* send it back */
-            if((send(conn_fd, buf, bytes_received, 0)) == -1){
-                perror("send");
+            else{
+
+                snprintf(message, BUF_SIZE+sizeof(hints.ai_canonname), "%s: %s\n", hints.ai_canonname, buf);
+
+                /* send it back */
+                if((send(conn_fd, message, BUF_SIZE+sizeof(hints.ai_canonname), 0)) == -1){
+                    perror("send");
+                }
             }
+
         }
         printf("\n");
 

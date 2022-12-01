@@ -29,11 +29,12 @@ int main(int argc, char *argv[])
     char buf[BUF_SIZE];
     int bytes_received;
     //buffer to compare to /nick
-    char is_nick[6];
-    char *new_nick;
+    // char is_nick[6];
+    // char *new_nick;
     char message[BUF_SIZE];
+    int i;
 
-    hints.ai_canonname = "Unknown";
+    // hints.ai_canonname = "Unknown";
 
     listen_port = argv[1];
 
@@ -77,7 +78,6 @@ int main(int argc, char *argv[])
         /* receive and echo data until the other end closes the connection */
         // WE NEED TO CHANGE THIS SO THAT WE CAN HANDLE MULTIPLE CONNECTIONS AT ONCE
         // CLASS NOTES SUGGEST: 
-        //      fork off a new process to deal with each incoming connection OR
         //      spin off a thread to deal with each incoming connection
 
         while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
@@ -86,41 +86,22 @@ int main(int argc, char *argv[])
                 perror("fflush");
             }
 
-            strncpy(is_nick, buf, 5);
+            snprintf(message, BUF_SIZE, "%s", buf);
 
-            // i don't fully understand why we check the nick in the server and not the client...
-            if(strcmp(is_nick, "/nick") == 0){
-                
-                new_nick = strtok(buf + 6, "\n");
-                // how do we broadcast this message to all clients?
-                snprintf(message, BUF_SIZE, "User %s (%s:%d) is now known as %s.\n", hints.ai_canonname, remote_ip, remote_port, new_nick);
-        
-                if((puts(message) < 0)){ //he used puts so i used puts- but i belive printf would also work?
-                    perror("puts");
-                }
+            printf("message sent: %s", message);
 
-                /* send it back */
-                if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
-                    perror("send");
-                }
-
-                hints.ai_canonname = new_nick; 
-                //the line above is happening before send and snprintf - 
-                //how do we fix this? the only thing i can think of is make it a critical section, but that's used with multiple threads and i don't think that's applicable here
-
+            /* send it back */
+            if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
+                perror("send");
             }
-            else{
 
-                snprintf(message, BUF_SIZE+sizeof(hints.ai_canonname), "%s: %s\n", hints.ai_canonname, buf);
-
-                /* send it back */
-                if((send(conn_fd, message, BUF_SIZE+sizeof(hints.ai_canonname), 0)) == -1){
-                    perror("send");
-                }
+            for(i = 0; i < BUF_SIZE; i++){
+                message[i] = '\0';
+                buf[i] = '\0';
             }
 
         }
-        printf("\n");
+        printf("out of while loop\n");
 
         close(conn_fd);
     }

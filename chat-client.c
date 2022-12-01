@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         
         printf("%s: ",date);
 
-        printf("%s",buf); //WHY IS IT PRINTING THE NAME AGAIN? it doesn't always print the name
+        printf("%s",buf);
     }
 
     if((close(conn_fd)) == -1){

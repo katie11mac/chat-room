@@ -12,9 +12,18 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <pthread.h>
 
 #define BACKLOG 10
 #define BUF_SIZE 4096 // can we assume a max message size?
+
+void *child_func(void *data);
+
+struct client_info
+{
+    struct sockaddr_in remote_sa;
+    int conn_fd;
+}
 
 int main(int argc, char *argv[])
 {
@@ -23,16 +32,10 @@ int main(int argc, char *argv[])
     struct addrinfo hints, *res;
     int rc;
     struct sockaddr_in remote_sa;
-    uint16_t remote_port;
     socklen_t addrlen;
-    char *remote_ip;
-    char buf[BUF_SIZE];
-    int bytes_received;
-    //buffer to compare to /nick
-    // char is_nick[6];
-    // char *new_nick;
-    char message[BUF_SIZE];
-    int i;
+    struct client_info new_client;
+
+    pthread_t child;
 
     // hints.ai_canonname = "Unknown";
 
@@ -70,39 +73,58 @@ int main(int argc, char *argv[])
             perror("conn_fd");
         }
 
-        /* announce our communication partner */
-        remote_ip = inet_ntoa(remote_sa.sin_addr);
-        remote_port = ntohs(remote_sa.sin_port);
-        printf("new connection from %s:%d\n", remote_ip, remote_port);
+        new_client->remote_sa = remote_sa;
+        new_client->conn_fd = conn_fd;
+        // Create thread for each child
+        pthread_create(&child, NULL, child_func, NULL);
 
-        /* receive and echo data until the other end closes the connection */
-        // WE NEED TO CHANGE THIS SO THAT WE CAN HANDLE MULTIPLE CONNECTIONS AT ONCE
-        // CLASS NOTES SUGGEST: 
-        //      spin off a thread to deal with each incoming connection
-
-        while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
-    
-            if(fflush(stdout) != 0){
-                perror("fflush");
-            }
-
-            snprintf(message, BUF_SIZE, "%s", buf);
-
-            printf("message sent: %s", message);
-
-            /* send it back */
-            if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
-                perror("send");
-            }
-
-            for(i = 0; i < BUF_SIZE; i++){
-                message[i] = '\0';
-                buf[i] = '\0';
-            }
-
-        }
-        printf("out of while loop\n");
 
         close(conn_fd);
     }
 }
+
+void *child_func(void *data)
+{
+    int conn_fd;
+    char *remote_ip;
+    int bytes_received;
+    uint16_t remote_port;
+    struct sockaddr_in remote_sa;
+    char buf[BUF_SIZE];
+    char message[BUF_SIZE];
+    int i;
+    /* announce our communication partner */
+    remote_ip = inet_ntoa(remote_sa.sin_addr);
+    remote_port = ntohs(remote_sa.sin_port);
+    printf("new connection from %s:%d\n", remote_ip, remote_port);
+
+    /* receive and echo data until the other end closes the connection */
+    // WE NEED TO CHANGE THIS SO THAT WE CAN HANDLE MULTIPLE CONNECTIONS AT ONCE
+    // CLASS NOTES SUGGEST: 
+    //      spin off a thread to deal with each incoming connection
+
+    while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
+
+        if(fflush(stdout) != 0){
+            perror("fflush");
+        }
+
+        snprintf(message, BUF_SIZE, "%s", buf);
+
+        printf("message sent: %s", message);
+
+        /* send it back */
+        if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
+            perror("send");
+        }
+
+        for(i = 0; i < BUF_SIZE; i++){
+            message[i] = '\0';
+            buf[i] = '\0';
+        }
+
+    }
+    printf("out of while loop\n");
+    return NULL;
+}
+

@@ -135,6 +135,7 @@ void *child_func(void *data)
     int i;
 
     struct client_info *new_client = (struct client_info *) data;
+    struct client_info *curr_client;
 
     conn_fd = new_client->conn_fd;
     remote_sa = new_client->remote_sa;
@@ -158,11 +159,27 @@ void *child_func(void *data)
 
         printf("message sent: %s", message);
 
-        /* send it back */
-        if((send(conn_fd, message, BUF_SIZE, 0)) == -1){
-            perror("send");
-        }
+        //iterate through all clients and send messages back
+        curr_client = first_client;
+        printf("first client: %p\n", curr_client);
 
+        while(curr_client != NULL){
+
+            printf("iterating through linkedlist\n");
+
+            pthread_mutex_lock(&mutex);
+            /* send it back */
+            if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
+                perror("send");
+            }
+
+            printf("%p\n", curr_client->next_client);
+            curr_client = curr_client->next_client;
+
+            pthread_mutex_unlock(&mutex);
+        }
+        
+       
         for(i = 0; i < BUF_SIZE; i++){
             message[i] = '\0';
             buf[i] = '\0';

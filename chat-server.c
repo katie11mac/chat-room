@@ -18,14 +18,20 @@
 #define BACKLOG 10
 #define BUF_SIZE 4096 // can we assume a max message size?
 
+static struct client_info *first_client = NULL;
+static struct client_info *last_client = NULL;
+
 void *child_func(void *data);
 pthread_mutex_t mutex;
 
-typedef struct
+struct client_info
 {
     struct sockaddr_in remote_sa;
     int conn_fd;
-}client_info;
+    char *name;
+    struct client_info *next_client;
+    struct client_info *prev_client;
+};
 
 int main(int argc, char *argv[])
 {
@@ -35,11 +41,9 @@ int main(int argc, char *argv[])
     int rc;
     struct sockaddr_in remote_sa;
     socklen_t addrlen;
-    client_info new_client;
+    struct client_info new_client;
     
     pthread_t child;
-
-    // hints.ai_canonname = "Unknown";
 
     listen_port = argv[1];
 
@@ -74,19 +78,47 @@ int main(int argc, char *argv[])
         if((conn_fd = accept(listen_fd, (struct sockaddr *) &remote_sa, &addrlen)) == -1){
             perror("conn_fd");
         }
+        
+        printf("conn_fd 1: %d\n", conn_fd);
+        //locking mutex while creating/editing the LL
+        if(pthread_mutex_lock(&mutex) != 0){
+            printf("pthread_mutex_lock error\n");
+        }
+
+        //Creating a client struct
+        new_client.remote_sa = remote_sa;
+        new_client.conn_fd = conn_fd;
+        new_client.name = "Unknown";
+        new_client.next_client = NULL;
+        new_client.prev_client = last_client;
+        printf("conn_fd 2 (in new_client): %d\n", new_client.conn_fd);
+
+
+        //Updating the linked list
+        if(first_client == NULL){
+            printf("RUNNING HERE\n");
+            first_client = &new_client;
+        }
+        else{
+            (last_client->next_client) = &new_client;
+        }
+
+        printf("creating client struct successfully\n");
+        last_client = &new_client;
+
+        //unlocking mutex
+        if(pthread_mutex_unlock(&mutex) != 0){
+            printf("pthread_mutex_lock error\n");
+        }
 
         // Create thread for each child
         if((pthread_create(&child, NULL, child_func, &new_client)) != 0){
             printf("pthread_create error\n");
         }
-        new_client.remote_sa = remote_sa;
-        new_client.conn_fd = conn_fd;
-        pthread_join(child, NULL);
 
-        close(conn_fd);
+        // close(conn_fd);
     }
     printf("out of the connecting while loop\n");
-    // pthread_join(child, NULL);
     
 }
 
@@ -102,10 +134,11 @@ void *child_func(void *data)
     char message[BUF_SIZE];
     int i;
 
-    client_info *new_client = (client_info *) data;
+    struct client_info *new_client = (struct client_info *) data;
 
-    remote_sa = new_client->remote_sa;
     conn_fd = new_client->conn_fd;
+    remote_sa = new_client->remote_sa;
+    printf("conn_fd 3 (in new_client function): %d\n", conn_fd);
 
     /* announce our communication partner */
     remote_ip = inet_ntoa(remote_sa.sin_addr);
@@ -113,11 +146,8 @@ void *child_func(void *data)
     printf("new connection from %s:%d\n", remote_ip, remote_port);
 
     /* receive and echo data until the other end closes the connection */
-    // WE NEED TO CHANGE THIS SO THAT WE CAN HANDLE MULTIPLE CONNECTIONS AT ONCE
-    // CLASS NOTES SUGGEST: 
-    //      spin off a thread to deal with each incoming connection
 
-    pthread_mutex_lock(&mutex);
+    // pthread_mutex_lock(&mutex);
     while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
 
         if(fflush(stdout) != 0){
@@ -139,7 +169,39 @@ void *child_func(void *data)
         }
 
     }
-    printf("out of the recieving while loop\n");
+    perror("recv");
+    printf("bytes recieved %d\n", bytes_received);
+
+    // deleting a client from the LL (need to lock)
+    pthread_mutex_lock(&mutex);
+
+    printf("terminating connection\n");
+    // deleting only client
+    if((first_client == new_client) && (last_client == new_client)){
+        first_client = NULL;
+        last_client = NULL;
+    }
+    // deleting first client
+    else if(first_client == new_client){
+        first_client = new_client->next_client;
+        (new_client->next_client)->prev_client = NULL;
+    }
+    // deleting last client
+    else if(last_client == new_client){
+        last_client = new_client->prev_client;
+        (new_client->prev_client)->next_client = NULL;
+    }
+    // deleting a middle client in LL
+    else {
+        (new_client->prev_client)->next_client = new_client->next_client;
+        (new_client->next_client)->prev_client = new_client->prev_client;
+    }
+    
     pthread_mutex_unlock(&mutex);
+
+
+
+    printf("out of the recieving while loop\n");
+    // pthread_mutex_unlock(&mutex);
     return NULL;
 }

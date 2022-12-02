@@ -5,4 +5,9 @@ Known Bugs:
 - Does not properly print the username of client
 - When a singular client sends more than one message, there is a significant lag in printing the message
 
+Questions
+- having multiple threads at the same time (join/mutexes)
+- keeping track of multiple threads
+
+
 Resources: 

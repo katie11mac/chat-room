@@ -13,17 +13,19 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/wait.h>
 
 #define BACKLOG 10
 #define BUF_SIZE 4096 // can we assume a max message size?
 
 void *child_func(void *data);
+pthread_mutex_t mutex;
 
-struct client_info
+typedef struct
 {
     struct sockaddr_in remote_sa;
     int conn_fd;
-}
+}client_info;
 
 int main(int argc, char *argv[])
 {
@@ -33,8 +35,8 @@ int main(int argc, char *argv[])
     int rc;
     struct sockaddr_in remote_sa;
     socklen_t addrlen;
-    struct client_info new_client;
-
+    client_info new_client;
+    
     pthread_t child;
 
     // hints.ai_canonname = "Unknown";
@@ -73,15 +75,21 @@ int main(int argc, char *argv[])
             perror("conn_fd");
         }
 
-        new_client->remote_sa = remote_sa;
-        new_client->conn_fd = conn_fd;
         // Create thread for each child
-        pthread_create(&child, NULL, child_func, NULL);
-
+        if((pthread_create(&child, NULL, child_func, &new_client)) != 0){
+            printf("pthread_create error\n");
+        }
+        new_client.remote_sa = remote_sa;
+        new_client.conn_fd = conn_fd;
+        pthread_join(child, NULL);
 
         close(conn_fd);
     }
+    printf("out of the connecting while loop\n");
+    // pthread_join(child, NULL);
+    
 }
+
 
 void *child_func(void *data)
 {
@@ -93,6 +101,12 @@ void *child_func(void *data)
     char buf[BUF_SIZE];
     char message[BUF_SIZE];
     int i;
+
+    client_info *new_client = (client_info *) data;
+
+    remote_sa = new_client->remote_sa;
+    conn_fd = new_client->conn_fd;
+
     /* announce our communication partner */
     remote_ip = inet_ntoa(remote_sa.sin_addr);
     remote_port = ntohs(remote_sa.sin_port);
@@ -103,6 +117,7 @@ void *child_func(void *data)
     // CLASS NOTES SUGGEST: 
     //      spin off a thread to deal with each incoming connection
 
+    pthread_mutex_lock(&mutex);
     while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
 
         if(fflush(stdout) != 0){
@@ -124,7 +139,7 @@ void *child_func(void *data)
         }
 
     }
-    printf("out of while loop\n");
+    printf("out of the recieving while loop\n");
+    pthread_mutex_unlock(&mutex);
     return NULL;
 }
-

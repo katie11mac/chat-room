@@ -40,13 +40,13 @@ int main(int argc, char *argv[])
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    if((rc = getaddrinfo(dest_hostname, dest_port, &hints, &res)) != 0) {
+    if((rc = getaddrinfo(dest_hostname, dest_port, &hints, &res)) != 0){
         printf("getaddrinfo failed: %s\n", gai_strerror(rc));
         exit(1);
     }
 
     /* connect to the server */
-    if(connect(conn_fd, res->ai_addr, res->ai_addrlen) < 0) {
+    if(connect(conn_fd, res->ai_addr, res->ai_addrlen) < 0){
         perror("connect");
         exit(2);
     }

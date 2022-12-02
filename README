@@ -9,5 +9,20 @@ Questions
 - having multiple threads at the same time (join/mutexes)
 - keeping track of multiple threads
 
+- multi threaded program: main is running in it’s own thread 
+
+sending messages to all clients
+- sends to all fds 
+- need to keep track of all fds (need to iterate through all of them) - linked lists of client structs
+	- fd and name of thread (modify them)
+	- need to delete them (need to check what we’re receiving (return 0 or -1) in the child thread) 
+	- add new ones (new connection in main thread) 
+	- THIS IS WHERE MUTEXES come into play (data structure being modified by different threads) 
+	- Modifications make this game very careful
+	- Reads have to protected from modifications 
+- Every function needs a mutex 
+- there is only one resource we want to protect (one thread can access one resource at a time) 
+- one mutex for each of the resources 
+
 
 Resources: 

@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     int rc;
     struct sockaddr_in remote_sa;
     socklen_t addrlen;
-    struct client_info new_client;
+    struct client_info *new_client;
     
     pthread_t child;
 
@@ -79,32 +79,36 @@ int main(int argc, char *argv[])
             perror("conn_fd");
         }
         
-        printf("conn_fd 1: %d\n", conn_fd);
+        //printf("conn_fd 1: %d\n", conn_fd);
         //locking mutex while creating/editing the LL
         if(pthread_mutex_lock(&mutex) != 0){
             printf("pthread_mutex_lock error\n");
         }
 
+        printf("\n");
         //Creating a client struct
-        new_client.remote_sa = remote_sa;
-        new_client.conn_fd = conn_fd;
-        new_client.name = "Unknown";
-        new_client.next_client = NULL;
-        new_client.prev_client = last_client;
-        printf("conn_fd 2 (in new_client): %d\n", new_client.conn_fd);
+        new_client = malloc(sizeof(struct client_info)); // I think we need to malloc bc each client has it's own stack, it shares the heap tho
+        new_client->remote_sa = remote_sa;
+        new_client->conn_fd = conn_fd;
+        new_client->name = "Unknown";
+        new_client->next_client = NULL;
+        new_client->prev_client = last_client;
+        //printf("conn_fd 2 (in new_client): %d\n", new_client.conn_fd);
+        printf("NEW CLIENTS INFO:\n\tself: %p\n\tnext: %p\n\tprev:%p\n\tconn_fd: %d\n", (void*)new_client, (void*)new_client->next_client, (void*) new_client->prev_client, new_client->conn_fd);
 
 
         //Updating the linked list
         if(first_client == NULL){
-            printf("RUNNING HERE\n");
-            first_client = &new_client;
+            printf("FIRST STRUCT IS NULL\n");
+            first_client = new_client;
         }
         else{
-            (last_client->next_client) = &new_client;
+            (last_client->next_client) = new_client;
         }
 
-        printf("creating client struct successfully\n");
-        last_client = &new_client;
+        // printf("creating client struct successfully\n");
+        last_client = new_client;
+        printf("FIRST CLIENT: %p\nLAST CLIENT: %p\n", (void*)first_client, (void*)last_client);
 
         //unlocking mutex
         if(pthread_mutex_unlock(&mutex) != 0){
@@ -112,7 +116,7 @@ int main(int argc, char *argv[])
         }
 
         // Create thread for each child
-        if((pthread_create(&child, NULL, child_func, &new_client)) != 0){
+        if((pthread_create(&child, NULL, child_func, new_client)) != 0){
             printf("pthread_create error\n");
         }
 
@@ -139,7 +143,7 @@ void *child_func(void *data)
 
     conn_fd = new_client->conn_fd;
     remote_sa = new_client->remote_sa;
-    printf("conn_fd 3 (in new_client function): %d\n", conn_fd);
+    //printf("conn_fd 3 (in new_client function): %d\n", conn_fd);
 
     /* announce our communication partner */
     remote_ip = inet_ntoa(remote_sa.sin_addr);
@@ -161,19 +165,22 @@ void *child_func(void *data)
 
         //iterate through all clients and send messages back
         curr_client = first_client;
-        printf("first client: %p\n", curr_client);
+        //printf("first client: %p\n", (void *)curr_client);
 
+        //DEFINITELY THINK THIS SHOULD BE IT'S OWN FUNCTION SINCE WE'LL HAVE TO ITERATION THROUGH CLIENTS MULTIPLE TIMES
         while(curr_client != NULL){
 
-            printf("iterating through linkedlist\n");
-
+            printf("\nITERATING THROUGH LL\n");
+            printf("\tcurr_client: %p\n", (void *)curr_client);
             pthread_mutex_lock(&mutex);
+
+            printf("\tcurr_client->conn_fd: %d\n", curr_client->conn_fd);
             /* send it back */
             if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
                 perror("send");
             }
 
-            printf("%p\n", curr_client->next_client);
+            printf("\tnext client: %p\n", (void *)(curr_client->next_client));
             curr_client = curr_client->next_client;
 
             pthread_mutex_unlock(&mutex);

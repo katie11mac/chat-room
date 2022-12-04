@@ -12,10 +12,12 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define BUF_SIZE 4096
 
 void *child_func(void *data);
+void sigintHandler(int sig_num);
 
 int main(int argc, char *argv[])
 {
@@ -31,6 +33,8 @@ int main(int argc, char *argv[])
     // struct tm *curr_time;
 
     pthread_t child;
+
+    signal(SIGQUIT, sigintHandler);
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -87,6 +91,8 @@ void *child_func(void *data)
     int n;
     int conn_fd;
 
+    signal(SIGQUIT, sigintHandler);
+
     conn_fd = *(int *)data;
 
     while((n = recv(conn_fd, buf, BUF_SIZE, 0)) != -1){
@@ -97,4 +103,9 @@ void *child_func(void *data)
     }
 
     return NULL;
+}
+
+void sigintHandler(int sig_num)
+{
+    exit(0);
 }

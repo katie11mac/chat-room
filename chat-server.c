@@ -275,7 +275,7 @@ void sigintHandler(int sig_num)
 
     //send_to_all_clients("Connection closed by remote host.");
     
-    if(kill(0, SIGINT) != 0){
+    if(kill(0, SIGQUIT) != 0){
         perror("kill");
         exit(1);
     }

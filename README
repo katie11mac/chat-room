@@ -26,3 +26,6 @@ sending messages to all clients
 
 
 Resources: 
+https://www.geeksforgeeks.org/write-a-c-program-that-doesnt-terminate-when-ctrlc-is-pressed/
+https://cplusplus.com/reference/cstdio/snprintf/
+https://www.tutorialspoint.com/c_standard_library/c_function_strncpy.htm

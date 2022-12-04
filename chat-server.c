@@ -14,6 +14,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #define BACKLOG 10
 #define BUF_SIZE 4096 // can we assume a max message size?
@@ -23,7 +24,8 @@ static struct client_info *last_client = NULL;
 pthread_mutex_t mutex;
 
 void *child_func(void *data);
-void send_to_all_clients(char message[BUF_SIZE]);
+void send_to_all_clients(char *message);
+void sigintHandler(int sig_num);
 
 
 struct client_info
@@ -46,6 +48,8 @@ int main(int argc, char *argv[])
     struct client_info *new_client;
     
     pthread_t child;
+
+    signal(SIGINT, sigintHandler);
 
     listen_port = argv[1];
 
@@ -121,7 +125,7 @@ int main(int argc, char *argv[])
 
         // close(conn_fd);
     }
-    // printf("out of the connecting while loop\n");
+    printf("out of the connecting while loop\n");
     
 }
 
@@ -241,7 +245,7 @@ void *child_func(void *data)
     return NULL;
 }
 
-void send_to_all_clients(char message[BUF_SIZE])
+void send_to_all_clients(char *message)
 {
     struct client_info *curr_client;
     //iterate through all clients and send messages back
@@ -258,9 +262,34 @@ void send_to_all_clients(char message[BUF_SIZE])
             perror("send");
         }
 
-        // printf("\tnext client: %p\n", (void *)(curr_client->next_client));
         curr_client = curr_client->next_client;
 
         pthread_mutex_unlock(&mutex);
     }
+}
+
+void sigintHandler(int sig_num)
+{
+    struct client_info *curr_client;
+    struct client_info *next_client;
+
+    //send_to_all_clients("Connection closed by remote host.");
+    
+    if(kill(0, SIGINT) != 0){
+        perror("kill");
+        exit(1);
+    }
+
+    //iterate through all clients and send messages back
+    curr_client = first_client;
+    while(curr_client != NULL){
+
+        pthread_mutex_lock(&mutex);
+        next_client = curr_client->next_client;
+        free(curr_client);
+        curr_client = next_client;
+        pthread_mutex_unlock(&mutex);
+    }
+
+    exit(0);
 }

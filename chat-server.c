@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
             perror("conn_fd");
         }
         
-        printf("\n");
+        // printf("\n");
         //Creating a client struct
         new_client = malloc(sizeof(struct client_info));
         new_client->remote_sa = remote_sa;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         new_client->next_client = NULL;
         new_client->prev_client = last_client;
         //printf("conn_fd 2 (in new_client): %d\n", new_client.conn_fd);
-        printf("NEW CLIENTS INFO:\n\tself: %p\n\tnext: %p\n\tprev:%p\n\tconn_fd: %d\n", (void*)new_client, (void*)new_client->next_client, (void*) new_client->prev_client, new_client->conn_fd);
+        // printf("NEW CLIENTS INFO:\n\tself: %p\n\tnext: %p\n\tprev:%p\n\tconn_fd: %d\n", (void*)new_client, (void*)new_client->next_client, (void*) new_client->prev_client, new_client->conn_fd);
 
         if(pthread_mutex_lock(&mutex) != 0){
             printf("pthread_mutex_lock error\n");
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 
         // printf("creating client struct successfully\n");
         last_client = new_client;
-        printf("FIRST CLIENT: %p\nLAST CLIENT: %p\n", (void*)first_client, (void*)last_client);
+        // printf("FIRST CLIENT: %p\nLAST CLIENT: %p\n", (void*)first_client, (void*)last_client);
 
         //unlocking mutex
         if(pthread_mutex_unlock(&mutex) != 0){
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 
         // close(conn_fd);
     }
-    printf("out of the connecting while loop\n");
+    // printf("out of the connecting while loop\n");
     
 }
 
@@ -161,8 +161,12 @@ void *child_func(void *data)
             perror("fflush");
         }
 
+        curr_time = localtime(&timing);
+        strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
+
         strncpy(nick_str, buf, 5);
 
+        //check if client changes name
         if(strcmp(nick_str, "/nick") == 0){
             nick_value = strtok(buf, "\n");
             strtok(nick_value, " ");
@@ -170,26 +174,25 @@ void *child_func(void *data)
             printf("new nick name: %s\n", nick_value);
             
             pthread_mutex_lock(&mutex);
-            snprintf(message, BUF_SIZE, "%s (%s:%d) is now known as %s.\n", new_client->name, remote_ip, remote_port, nick_value);
+            snprintf(message, BUF_SIZE, "%s: %s (%s:%d) is now known as %s.\n", date, new_client->name, remote_ip, remote_port, nick_value);
             new_client->name = nick_value;
             printf("new client - name: %s\n", new_client->name);
             pthread_mutex_unlock(&mutex);
         }
+        //client has send a message
         else{
             //get the time
             if((timing = time(NULL)) == (time_t)-1){
                 perror("time");
             }
-            curr_time = localtime(&timing);
-            strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
 
             pthread_mutex_lock(&mutex);
-            printf("max size for snprintf: %ld\n", BUF_SIZE + sizeof(date) + sizeof(new_client->name));
-            printf("*new client - name: '%s'\n", new_client->name);
+            // printf("max size for snprintf: %ld\n", BUF_SIZE + sizeof(date) + sizeof(new_client->name));
+            // printf("*new client - name: '%s'\n", new_client->name);
             snprintf(message, BUF_SIZE + sizeof(date) + sizeof(new_client->name), "%s: %s: %s", date, new_client->name, buf);
             pthread_mutex_unlock(&mutex);
 
-            printf("message sent: %s", message);
+            // printf("message sent: %s", message);
         }
         //printf("first client: %p\n", (void *)curr_client);
         send_to_all_clients(message);
@@ -200,13 +203,17 @@ void *child_func(void *data)
         }
 
     }
-    perror("recv");
-    printf("bytes recieved %d\n", bytes_received);
+    // perror("recv");
+    // printf("bytes recieved %d\n", bytes_received);
 
+    //client is terminating their connection
     // deleting a client from the LL (need to lock)
-    pthread_mutex_lock(&mutex);
 
-    printf("terminating connection\n");
+    printf("Lost connection from %s\n", new_client->name);
+    snprintf(message, BUF_SIZE, "%s: User %s (%s:%d) has disconnected.\n", date, new_client->name, remote_ip, remote_port);
+    send_to_all_clients(message);
+
+    pthread_mutex_lock(&mutex);
     // deleting only client
     if((first_client == new_client) && (last_client == new_client)){
         first_client = NULL;
@@ -227,12 +234,9 @@ void *child_func(void *data)
         (new_client->prev_client)->next_client = new_client->next_client;
         (new_client->next_client)->prev_client = new_client->prev_client;
     }
-    
+    free(new_client);
     pthread_mutex_unlock(&mutex);
 
-
-
-    printf("out of the recieving while loop\n");
     // pthread_mutex_unlock(&mutex);
     return NULL;
 }
@@ -242,20 +246,19 @@ void send_to_all_clients(char message[BUF_SIZE])
     struct client_info *curr_client;
     //iterate through all clients and send messages back
     curr_client = first_client;
-
     while(curr_client != NULL){
 
-        printf("\nITERATING THROUGH LL\n");
-        printf("\tcurr_client: %p\n", (void *)curr_client);
+        // printf("\nITERATING THROUGH LL\n");
+        // printf("\tcurr_client: %p\n", (void *)curr_client);
         pthread_mutex_lock(&mutex);
 
-        printf("\tcurr_client->conn_fd: %d\n", curr_client->conn_fd);
+        // printf("\tcurr_client->conn_fd: %d\n", curr_client->conn_fd);
         /* send it back */
         if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
             perror("send");
         }
 
-        printf("\tnext client: %p\n", (void *)(curr_client->next_client));
+        // printf("\tnext client: %p\n", (void *)(curr_client->next_client));
         curr_client = curr_client->next_client;
 
         pthread_mutex_unlock(&mutex);

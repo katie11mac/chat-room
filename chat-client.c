@@ -73,25 +73,9 @@ int main(int argc, char *argv[])
             perror("send");
         }
 
-        // if((n = recv(conn_fd, buf, BUF_SIZE, 0)) == -1){
-        //     perror("recv");
-        // }
-        
-        // printf("%s", buf);
-
-        // //Print out time
-        // if((timing = time(NULL)) == (time_t)-1){
-        //     perror("time");
-        // }
-        // curr_time = localtime(&timing);
-        // strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
-        
-        // printf("%s: ",date);
-
-        // printf("%s",buf);
     }
 
-    printf("CLOSING CONNECTION\n");
+    printf("Exiting.\n");
     if((close(conn_fd)) == -1){
         perror("close");
     }

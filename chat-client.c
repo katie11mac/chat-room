@@ -16,25 +16,23 @@
 
 #define BUF_SIZE 4096
 
-void *child_func(void *data);
-void sigintHandler(int sig_num);
+void *receive_message(void *data);
+void sigint_handler(int sig_num);
 
 int main(int argc, char *argv[])
 {
     char *dest_hostname, *dest_port;
     struct addrinfo hints, *res;
     int conn_fd;
+    // pointer to hold conn_fd in order to pass to thread
     int *id;
     char buf[BUF_SIZE];
     int n;
     int rc;
-    // time_t timing;
-    // char date[14];
-    // struct tm *curr_time;
-
     pthread_t child;
 
-    signal(SIGQUIT, sigintHandler);
+    // Handle signal when server closes
+    signal(SIGQUIT, sigint_handler);
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -45,7 +43,6 @@ int main(int argc, char *argv[])
     }
 
     /* client usually doesn't bind, which lets kernel pick a port number */
-
     /* but we do need to find the IP address of the server */
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -65,7 +62,7 @@ int main(int argc, char *argv[])
 
     id = &conn_fd;
 
-    if((pthread_create(&child, NULL, child_func, id)) != 0){
+    if((pthread_create(&child, NULL, receive_message, id)) != 0){
         printf("pthread_create error\n");
     }
 
@@ -80,18 +77,23 @@ int main(int argc, char *argv[])
     }
 
     printf("Exiting.\n");
+
     if((close(conn_fd)) == -1){
         perror("close");
     }
 }
 
-void *child_func(void *data)
+/*
+* infinite loop for receiving messages from the server
+*/
+void *receive_message(void *data)
 {
     char buf[BUF_SIZE];
     int n;
     int conn_fd;
 
-    signal(SIGQUIT, sigintHandler);
+    // Handle signal when server closes
+    signal(SIGQUIT, sigint_handler);
 
     conn_fd = *(int *)data;
 
@@ -105,7 +107,7 @@ void *child_func(void *data)
     return NULL;
 }
 
-void sigintHandler(int sig_num)
+void sigint_handler(int sig_num)
 {
     exit(0);
 }

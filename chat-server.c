@@ -81,9 +81,9 @@ int main(int argc, char *argv[])
         
         //printf("conn_fd 1: %d\n", conn_fd);
         //locking mutex while creating/editing the LL
-        if(pthread_mutex_lock(&mutex) != 0){
-            printf("pthread_mutex_lock error\n");
-        }
+        // if(pthread_mutex_lock(&mutex) != 0){
+        //     printf("pthread_mutex_lock error\n");
+        // }
 
         printf("\n");
         //Creating a client struct
@@ -96,6 +96,9 @@ int main(int argc, char *argv[])
         //printf("conn_fd 2 (in new_client): %d\n", new_client.conn_fd);
         printf("NEW CLIENTS INFO:\n\tself: %p\n\tnext: %p\n\tprev:%p\n\tconn_fd: %d\n", (void*)new_client, (void*)new_client->next_client, (void*) new_client->prev_client, new_client->conn_fd);
 
+        if(pthread_mutex_lock(&mutex) != 0){
+            printf("pthread_mutex_lock error\n");
+        }
 
         //Updating the linked list
         if(first_client == NULL){
@@ -137,6 +140,9 @@ void *child_func(void *data)
     char buf[BUF_SIZE];
     char message[BUF_SIZE];
     int i;
+    time_t timing;
+    char date[14];
+    struct tm *curr_time;
 
     struct client_info *new_client = (struct client_info *) data;
     struct client_info *curr_client;
@@ -159,7 +165,15 @@ void *child_func(void *data)
             perror("fflush");
         }
 
-        snprintf(message, BUF_SIZE, "%s", buf);
+        //get the time
+        if((timing = time(NULL)) == (time_t)-1){
+            perror("time");
+        }
+        curr_time = localtime(&timing);
+        strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
+
+        printf("max size for snprintf: %ld\n", BUF_SIZE + sizeof(date) + sizeof(new_client->name));
+        snprintf(message, BUF_SIZE + sizeof(date) + sizeof(new_client->name), "%s: %s: %s", date, new_client->name, buf);
 
         printf("message sent: %s", message);
 

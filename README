@@ -51,6 +51,8 @@ Connection closed by server:
 - when recv fails to recieve
 	- no need to handle the signal
 
+Look at closing/freeing after
+
 Resources: 
 https://www.geeksforgeeks.org/write-a-c-program-that-doesnt-terminate-when-ctrlc-is-pressed/
 https://cplusplus.com/reference/cstdio/snprintf/

@@ -12,12 +12,10 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
-// #include <signal.h>
 
 #define BUF_SIZE 4096
 
 void *receive_message(void *data);
-// void sigint_handler(int sig_num);
 
 int main(int argc, char *argv[])
 {
@@ -30,9 +28,6 @@ int main(int argc, char *argv[])
     int n;
     int rc;
     pthread_t child;
-
-    // Handle signal when server closes
-    // signal(SIGQUIT, sigint_handler);
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -92,25 +87,16 @@ void *receive_message(void *data)
     int n;
     int conn_fd;
 
-    // Handle signal when server closes
-    // signal(SIGQUIT, sigint_handler);
-
     conn_fd = *(int *)data;
 
     while((n = recv(conn_fd, buf, BUF_SIZE, 0)) > 0){
-        printf("INFINTELY HERE\n");
         printf("%s", buf);
     }
-    if (n == -1)
-    {
-        perror("recv");
+    if(n == 0){
+        printf("Connection closed by remote host.\n");
+        exit(1);
     }
     
-
+    close(conn_fd);
     return NULL;
 }
-
-// void sigint_handler(int sig_num)
-// {
-//     exit(0);
-// }

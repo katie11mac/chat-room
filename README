@@ -1,57 +1,6 @@
 Authors: Lindsey Schweitzer and Katie Macalintal
 
-Known Bugs: 
-- Cannot handle multiple clients 
-- Does not properly print the username of client
-- When a singular client sends more than one message, there is a significant lag in printing the message
-
-Questions
-- having multiple threads at the same time (join/mutexes)
-- keeping track of multiple threads
-
-- multi threaded program: main is running in it’s own thread 
-
-sending messages to all clients
-- sends to all fds 
-- need to keep track of all fds (need to iterate through all of them) - linked lists of client structs
-	- fd and name of thread (modify them)
-	- need to delete them (need to check what we’re receiving (return 0 or -1) in the child thread) 
-	- add new ones (new connection in main thread) 
-	- THIS IS WHERE MUTEXES come into play (data structure being modified by different threads) 
-	- Modifications make this game very careful
-	- Reads have to protected from modifications 
-- Every function needs a mutex 
-- there is only one resource we want to protect (one thread can access one resource at a time) 
-- one mutex for each of the resources 
-
-NOTES:
-
-Locking:
-- one thread per client
-	- one thread recieves "/nick katie" and goes to change nick field
-	- don't need to lock it (as long as no other thread is reading this memory)
-- one thread could add a client while another thread deletes a client
-	- just messes with the pointers
-- minimize locking you want to do
-- run valgrind on it
-
-name change:
-- client struct: name data field
-- recv- local var called buf, where message is sent
-- check first six chars ' ' after /nick
-- local var called nick_str
-- char * of nick_value
-- strtok --> /nick katie\0\0
-- strtok -->katie\0\0
-- strdup
-
-Connection closed by server:
-- Connection closed by remote host
-	- perror message
-- when recv fails to recieve
-	- no need to handle the signal
-
-Look at closing/freeing after
+Known Bugs: N/A
 
 Resources: 
 https://www.geeksforgeeks.org/write-a-c-program-that-doesnt-terminate-when-ctrlc-is-pressed/

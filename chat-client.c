@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     /* infinite loop of reading from terminal, sending the data, and printing
      * what we get back */
     while((n = read(0, buf, BUF_SIZE)) > 0) {
-
+        
         if((send(conn_fd, buf, n, 0)) == -1){
             perror("send");
         }
@@ -97,12 +97,15 @@ void *receive_message(void *data)
 
     conn_fd = *(int *)data;
 
-    while((n = recv(conn_fd, buf, BUF_SIZE, 0)) != -1){
+    while((n = recv(conn_fd, buf, BUF_SIZE, 0)) > 0){
+        printf("INFINTELY HERE\n");
         printf("%s", buf);
     }
-    if(n == -1){
+    if (n == -1)
+    {
         perror("recv");
     }
+    
 
     return NULL;
 }

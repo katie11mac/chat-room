@@ -202,7 +202,7 @@ void *client_thread_func(void *data)
 
             // printf("message sent: %s", message);
         }
-
+        
         send_to_all_clients(message);
        
         // clear the message and buf array
@@ -246,6 +246,7 @@ void *client_thread_func(void *data)
     }
 
     // need to free the new_client since it was malloc-ed
+    //close(new_client->conn_fd);
     free(new_client);
     pthread_mutex_unlock(&mutex);
 

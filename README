@@ -24,6 +24,32 @@ sending messages to all clients
 - there is only one resource we want to protect (one thread can access one resource at a time) 
 - one mutex for each of the resources 
 
+NOTES:
+
+Locking:
+- one thread per client
+	- one thread recieves "/nick katie" and goes to change nick field
+	- don't need to lock it (as long as no other thread is reading this memory)
+- one thread could add a client while another thread deletes a client
+	- just messes with the pointers
+- minimize locking you want to do
+- run valgrind on it
+
+name change:
+- client struct: name data field
+- recv- local var called buf, where message is sent
+- check first six chars ' ' after /nick
+- local var called nick_str
+- char * of nick_value
+- strtok --> /nick katie\0\0
+- strtok -->katie\0\0
+- strdup
+
+Connection closed by server:
+- Connection closed by remote host
+	- perror message
+- when recv fails to recieve
+	- no need to handle the signal
 
 Resources: 
 https://www.geeksforgeeks.org/write-a-c-program-that-doesnt-terminate-when-ctrlc-is-pressed/

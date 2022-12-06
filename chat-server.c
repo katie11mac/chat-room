@@ -175,28 +175,30 @@ void *client_thread_func(void *data)
         strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
 
         // check if client changes name
-        strncpy(nick_str, buf, 5);
-        if(strcmp(nick_str, "/nick") == 0){
+        strncpy(nick_str, buf, 6);
+        if(strcmp(nick_str, "/nick ") == 0){
+            
             nick_value = strtok(buf, "\n");
             strtok(nick_value, " ");
             nick_value = strtok(NULL, " ");
             printf("new nick name: %s\n", nick_value);
             
             // lock mutex since editing client in the linked list
-            pthread_mutex_lock(&mutex);
+           
             snprintf(message, BUF_SIZE, "%s: %s (%s:%d) is now known as %s.\n", date, new_client->name, remote_ip, remote_port, nick_value);
-            new_client->name = nick_value;
+            
+            new_client->name = strdup(nick_value);
+
             printf("new client - name: %s\n", new_client->name);
-            pthread_mutex_unlock(&mutex);
+
+
         }
         //client has send a message
         else{
 
-            pthread_mutex_lock(&mutex);
             // printf("max size for snprintf: %ld\n", BUF_SIZE + sizeof(date) + sizeof(new_client->name));
             // printf("*new client - name: '%s'\n", new_client->name);
             snprintf(message, BUF_SIZE + sizeof(date) + sizeof(new_client->name), "%s: %s: %s", date, new_client->name, buf);
-            pthread_mutex_unlock(&mutex);
 
             // printf("message sent: %s", message);
         }

@@ -12,12 +12,12 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
-#include <signal.h>
+// #include <signal.h>
 
 #define BUF_SIZE 4096
 
 void *receive_message(void *data);
-void sigint_handler(int sig_num);
+// void sigint_handler(int sig_num);
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     pthread_t child;
 
     // Handle signal when server closes
-    signal(SIGQUIT, sigint_handler);
+    // signal(SIGQUIT, sigint_handler);
 
     dest_hostname = argv[1];
     dest_port     = argv[2];
@@ -93,7 +93,7 @@ void *receive_message(void *data)
     int conn_fd;
 
     // Handle signal when server closes
-    signal(SIGQUIT, sigint_handler);
+    // signal(SIGQUIT, sigint_handler);
 
     conn_fd = *(int *)data;
 
@@ -107,7 +107,7 @@ void *receive_message(void *data)
     return NULL;
 }
 
-void sigint_handler(int sig_num)
-{
-    exit(0);
-}
+// void sigint_handler(int sig_num)
+// {
+//     exit(0);
+// }

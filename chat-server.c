@@ -14,7 +14,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/wait.h>
-#include <signal.h>
+//#include <signal.h>
 
 #define BACKLOG 10
 #define BUF_SIZE 4096 // can we assume a max message size?
@@ -25,7 +25,7 @@ pthread_mutex_t mutex;
 
 void *client_thread_func(void *data);
 void send_to_all_clients(char *message);
-void sigint_handler(int sig_num);
+//void sigint_handler(int sig_num);
 
 
 struct client_info
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     pthread_t child;
 
     // Handle when user closes server
-    signal(SIGINT, sigint_handler);
+    // signal(SIGINT, sigint_handler);
 
     listen_port = argv[1];
 
@@ -147,7 +147,7 @@ void *client_thread_func(void *data)
     char date[14];
     struct tm *curr_time;
     // variables relevant for checking if /nick provided
-    char nick_str[6];
+    char nick_str[7];
     char *nick_value;
 
     struct client_info *new_client = (struct client_info *) data;
@@ -177,7 +177,7 @@ void *client_thread_func(void *data)
         // check if client changes name
         strncpy(nick_str, buf, 6);
         if(strcmp(nick_str, "/nick ") == 0){
-            
+
             nick_value = strtok(buf, "\n");
             strtok(nick_value, " ");
             nick_value = strtok(NULL, " ");
@@ -281,6 +281,7 @@ void send_to_all_clients(char *message)
 /*
 * Handle when server terminates the connection
 */
+/*
 void sigint_handler(int sig_num)
 {
     struct client_info *curr_client;
@@ -308,3 +309,4 @@ void sigint_handler(int sig_num)
 
     exit(0);
 }
+*/

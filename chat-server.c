@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
             first_client = new_client;
         }
         else{
-            (last_client->next_client) = new_client;
+            last_client->next_client = new_client;
         }
 
         last_client = new_client;
@@ -199,17 +199,17 @@ void *client_thread_func(void *data)
     // CASE 1: deleting first client
     else if(first_client == new_client){
         first_client = new_client->next_client;
-        (new_client->next_client)->prev_client = NULL;
+        new_client->next_client->prev_client = NULL;
     }
     // CASE 2: deleting last client
     else if(last_client == new_client){
         last_client = new_client->prev_client;
-        (new_client->prev_client)->next_client = NULL;
+        new_client->prev_client->next_client = NULL;
     }
     // CASE 3: deleting a middle client in LL
     else {
-        (new_client->prev_client)->next_client = new_client->next_client;
-        (new_client->next_client)->prev_client = new_client->prev_client;
+        new_client->prev_client->next_client = new_client->next_client;
+        new_client->next_client->prev_client = new_client->prev_client;
     }
 
     // need to free the new_client since it was malloc-ed

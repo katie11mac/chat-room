@@ -23,7 +23,9 @@ static struct client_info *last_client = NULL;
 pthread_mutex_t mutex;
 
 void *client_thread_func(void *data);
+void store_new_client(struct client_info *new_client);
 void send_to_all_clients(char *message);
+void remove_client(struct client_info *new_client);
 
 
 struct client_info
@@ -89,22 +91,8 @@ int main(int argc, char *argv[])
         new_client->next_client = NULL;
         new_client->prev_client = last_client;
         
-        // lock mutex since added a new client to the linked list
-        if(pthread_mutex_lock(&mutex) != 0){
-            printf("pthread_mutex_lock error\n");
-        }
-
-        //Updating the linked list
-        if(first_client == NULL){
-            first_client = new_client;
-        }
-        else{
-            last_client->next_client = new_client;
-        }
-
-        last_client = new_client;
-    
-        pthread_mutex_unlock(&mutex);
+        // add newly created client to the linked list
+        store_new_client(new_client);
 
         // create thread for each new client
         pthread_create(&child, NULL, client_thread_func, new_client);
@@ -165,7 +153,7 @@ void *client_thread_func(void *data)
             
             new_client->name = strdup(nick_value);
         }
-        //client has send a message
+        // client has sent a message
         else{
             snprintf(message, BUF_SIZE + sizeof(date) + sizeof(new_client->name), "%s: %s: %s", date, new_client->name, buf);
         }
@@ -182,7 +170,63 @@ void *client_thread_func(void *data)
     snprintf(message, BUF_SIZE, "%s: User %s (%s:%d) has disconnected.\n", date, new_client->name, remote_ip, remote_port);
     send_to_all_clients(message);
 
-    //deleting a client from the linked list (need to lock)
+    // remove disconnected client from the linked list
+    remove_client(new_client);
+
+    return NULL;
+}
+
+/*
+* Store newly created client struct in the linked list of clients
+*/
+void store_new_client(struct client_info *new_client)
+{
+    // lock mutex since added a new client to the linked list
+    if(pthread_mutex_lock(&mutex) != 0){
+        printf("pthread_mutex_lock error\n");
+    }
+
+    // updating the linked list
+    if(first_client == NULL){
+        first_client = new_client;
+    }
+    else{
+        last_client->next_client = new_client;
+    }
+
+    last_client = new_client;
+
+    pthread_mutex_unlock(&mutex);
+}
+
+/* 
+* Iterate through all clients in the linked list and send them a message
+*/
+void send_to_all_clients(char *message)
+{
+    struct client_info *curr_client;
+    // iterate through all clients and send messages back
+    curr_client = first_client;
+    while(curr_client != NULL){
+
+        pthread_mutex_lock(&mutex);
+
+        /* send it back */
+        if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
+            perror("send");
+        }
+
+        curr_client = curr_client->next_client;
+        pthread_mutex_unlock(&mutex);
+    }
+}
+
+/*
+* Store client struct from the linked list of clients
+*/
+void remove_client(struct client_info *new_client)
+{
+    // deleting a client from the linked list (need to lock)
     pthread_mutex_lock(&mutex);
     // CASE 0: deleting only client
     if((first_client == new_client) && (last_client == new_client)){
@@ -208,28 +252,4 @@ void *client_thread_func(void *data)
     // need to free the new_client since it was malloc-ed
     free(new_client);
     pthread_mutex_unlock(&mutex);
-
-    return NULL;
-}
-
-/* 
-* Iterate through all clients in the linked list and send them a message
-*/
-void send_to_all_clients(char *message)
-{
-    struct client_info *curr_client;
-    //iterate through all clients and send messages back
-    curr_client = first_client;
-    while(curr_client != NULL){
-
-        pthread_mutex_lock(&mutex);
-
-        /* send it back */
-        if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
-            perror("send");
-        }
-
-        curr_client = curr_client->next_client;
-        pthread_mutex_unlock(&mutex);
-    }
 }

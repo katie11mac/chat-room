@@ -126,8 +126,7 @@ void *client_thread_func(void *data)
     time_t timing;
     char date[14];
     struct tm *curr_time;
-    // variables relevant for checking if /nick provided
-    char nick_str[7];
+    // new nickname value for client when /nick is provided
     char *nick_value;
 
     struct client_info *new_client = (struct client_info *) data;
@@ -155,8 +154,7 @@ void *client_thread_func(void *data)
         strftime(date, BUF_SIZE, "%H:%M:%S", curr_time);
 
         // check if client changes name
-        strncpy(nick_str, buf, 6);
-        if(strcmp(nick_str, "/nick ") == 0){
+        if(strncmp(buf, "/nick ", 6) == 0){
 
             nick_value = strtok(buf, "\n");
             strtok(nick_value, " ");

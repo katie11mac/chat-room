@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
     /* create a socket */
     if ((listen_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1){
         perror("socket");
+        exit(1);
     }
 
     /* bind it to a port */
@@ -68,26 +69,30 @@ int main(int argc, char *argv[])
 
     if((bind(listen_fd, res->ai_addr, res->ai_addrlen)) == -1){
         perror("bind");
+        exit(1);
     }
 
     /* start listening */
     if((listen(listen_fd, BACKLOG)) == -1){
         perror("listen");
+        exit(1);
     }
 
     /* infinite loop of accepting new connections and handling them */
     while(1) {
         /* accept a new connection (will block until one appears) */
         addrlen = sizeof(remote_sa);
+        
         if((conn_fd = accept(listen_fd, (struct sockaddr *) &remote_sa, &addrlen)) == -1){
             perror("conn_fd");
+            exit(1);
         }
         
         // create a new client struct
         new_client = malloc(sizeof(struct client_info));
         new_client->remote_sa = remote_sa;
         new_client->conn_fd = conn_fd;
-        new_client->name = "unknown";
+        new_client->name = strdup("unknown");
         new_client->next_client = NULL;
         new_client->prev_client = last_client;
         
@@ -95,7 +100,9 @@ int main(int argc, char *argv[])
         store_new_client(new_client);
 
         // create thread for each new client
-        pthread_create(&child, NULL, client_thread_func, new_client);
+        if(pthread_create(&child, NULL, client_thread_func, new_client) != 0){
+            exit(1);
+        }
     }
    
 }
@@ -151,6 +158,7 @@ void *client_thread_func(void *data)
             snprintf(message, BUF_SIZE, "%s: User %s (%s:%d) is now known as %s.\n", date, new_client->name, remote_ip, remote_port, nick_value);
             printf("User %s (%s:%d) is now known as %s.\n", new_client->name, remote_ip, remote_port, nick_value);
             
+            free(new_client->name);
             new_client->name = strdup(nick_value);
         }
         // client has sent a message
@@ -182,9 +190,7 @@ void *client_thread_func(void *data)
 void store_new_client(struct client_info *new_client)
 {
     // lock mutex since added a new client to the linked list
-    if(pthread_mutex_lock(&mutex) != 0){
-        printf("pthread_mutex_lock error\n");
-    }
+    pthread_mutex_lock(&mutex);
 
     // updating the linked list
     if(first_client == NULL){
@@ -214,6 +220,7 @@ void send_to_all_clients(char *message)
         /* send it back */
         if((send(curr_client->conn_fd, message, BUF_SIZE, 0)) == -1){
             perror("send");
+            exit(1);
         }
 
         curr_client = curr_client->next_client;
@@ -222,11 +229,14 @@ void send_to_all_clients(char *message)
 }
 
 /*
-* Store client struct from the linked list of clients
+* Deleting a client from the linked list
 */
 void remove_client(struct client_info *new_client)
 {
-    // deleting a client from the linked list (need to lock)
+    //strdupped so have to free
+    free(new_client->name);
+
+    // need to lock
     pthread_mutex_lock(&mutex);
     // CASE 0: deleting only client
     if((first_client == new_client) && (last_client == new_client)){

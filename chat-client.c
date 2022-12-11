@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
     /* create a socket */
     if((conn_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1){
         perror("socket");
+        exit(1);
     }
 
     /* client usually doesn't bind, which lets kernel pick a port number */
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
+
     if((rc = getaddrinfo(dest_hostname, dest_port, &hints, &res)) != 0){
         printf("getaddrinfo failed: %s\n", gai_strerror(rc));
         exit(1);
@@ -48,25 +50,22 @@ int main(int argc, char *argv[])
     /* connect to the server */
     if(connect(conn_fd, res->ai_addr, res->ai_addrlen) < 0){
         perror("connect");
-        exit(2);
+        exit(1);
     }
 
     printf("Connected\n");
 
-    if((pthread_create(&child, NULL, receive_message, &conn_fd)) != 0){
-        printf("pthread_create error\n");
-    }
+    pthread_create(&child, NULL, receive_message, &conn_fd);
 
-    /* infinite loop of reading from terminal, sending the data, and printing
-     * what we get back */
+    /* infinite loop of reading from terminal, sending the data */
     while((n = read(0, buf, BUF_SIZE)) > 0) {
         
         if((send(conn_fd, buf, n, 0)) == -1){
             perror("send");
+            exit(1);
         }
 
     }
-
     printf("Exiting.\n");
 
     if((close(conn_fd)) == -1){
@@ -93,6 +92,8 @@ void *receive_message(void *data)
         exit(1);
     }
     
-    close(conn_fd);
+    if((close(conn_fd)) == -1){
+        perror("close");
+    }
     return NULL;
 }

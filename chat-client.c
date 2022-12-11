@@ -22,8 +22,6 @@ int main(int argc, char *argv[])
     char *dest_hostname, *dest_port;
     struct addrinfo hints, *res;
     int conn_fd;
-    // pointer to hold conn_fd in order to pass to thread
-    int *id;
     char buf[BUF_SIZE];
     int n;
     int rc;
@@ -55,9 +53,7 @@ int main(int argc, char *argv[])
 
     printf("Connected\n");
 
-    id = &conn_fd;
-
-    if((pthread_create(&child, NULL, receive_message, id)) != 0){
+    if((pthread_create(&child, NULL, receive_message, &conn_fd)) != 0){
         printf("pthread_create error\n");
     }
 

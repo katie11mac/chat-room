@@ -122,8 +122,6 @@ void *client_thread_func(void *data)
     struct sockaddr_in remote_sa;
     char buf[BUF_SIZE];
     char message[BUF_SIZE];
-    // counter for clearing the buf
-    int i;
     // variables relevant for time formatting
     time_t timing;
     char date[14];
@@ -177,11 +175,8 @@ void *client_thread_func(void *data)
         send_to_all_clients(message);
        
         // clear the message and buf array
-        for(i = 0; i < BUF_SIZE; i++){
-            message[i] = '\0';
-            buf[i] = '\0';
-        }
-
+        memset(message, '\0', BUF_SIZE);
+        memset(buf, '\0', BUF_SIZE);
     }
 
     // client has terminated connection from server 

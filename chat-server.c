@@ -30,7 +30,7 @@ void remove_client(struct client_info *new_client);
 
 struct client_info
 {
-    struct sockaddr_in remote_sa;
+    struct sockaddr_in *remote_sa;
     int conn_fd;
     char *name;
     struct client_info *next_client;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         
         // create a new client struct
         new_client = malloc(sizeof(struct client_info));
-        new_client->remote_sa = remote_sa;
+        new_client->remote_sa = &remote_sa;
         new_client->conn_fd = conn_fd;
         new_client->name = strdup("unknown");
         new_client->next_client = NULL;
@@ -127,7 +127,7 @@ void *client_thread_func(void *data)
     struct client_info *new_client = (struct client_info *) data;
 
     conn_fd = new_client->conn_fd;
-    remote_sa = new_client->remote_sa;
+    remote_sa = *(new_client->remote_sa);
 
     /* announce our communication partner */
     remote_ip = inet_ntoa(remote_sa.sin_addr);

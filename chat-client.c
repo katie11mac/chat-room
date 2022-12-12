@@ -1,5 +1,5 @@
 /*
- * echo-client.c
+ * chat-client.c
  */
 
 #include <stdlib.h>
@@ -55,7 +55,10 @@ int main(int argc, char *argv[])
 
     printf("Connected\n");
 
-    pthread_create(&child, NULL, receive_message, &conn_fd);
+    // thread for recieving messages
+    if(pthread_create(&child, NULL, receive_message, &conn_fd) != 0){
+        exit(1);
+    }
 
     /* infinite loop of reading from terminal, sending the data */
     while((n = read(0, buf, BUF_SIZE)) > 0) {

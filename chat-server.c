@@ -1,5 +1,5 @@
 /*
- * echo-server.c
+ * chat-server.c
  */
 
 #include <stdlib.h>
@@ -134,7 +134,7 @@ void *client_thread_func(void *data)
     remote_port = ntohs(remote_sa.sin_port);
     printf("new connection from %s:%d\n", remote_ip, remote_port);
 
-    /* receive and echo data until the other end closes the connection */
+    /* receive data until the other end closes the connection */
     while((bytes_received = recv(conn_fd, buf, BUF_SIZE, 0)) > 0) {
 
         if(fflush(stdout) != 0){
